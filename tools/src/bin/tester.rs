@@ -39,7 +39,7 @@ fn main() {
         })
     }
     pool.join();
-    const PRETESTNUM: i64 = 300;
+    const PRETESTNUM: i64 = 150;
     let total_score = *total_score.lock().unwrap();
     let local_score = total_score * PRETESTNUM / case_num;
     println!("local score:{}", add_separator(local_score.to_string()));
