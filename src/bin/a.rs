@@ -22,11 +22,12 @@ impl State {
 }
 
 fn greedy(state: &mut State, out: &mut Output) {
-    let timer = Timer::new();
-    while out.len() < MAX_TURN && timer.get_time() < 1.9 {
+    while out.len() < MAX_TURN {
+        let mut no_changed = true;
         for i in 0..N - 1 {
             for j in 0..=i {
                 if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
+                    no_changed = false;
                     if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
                         let tmp = state.bs[i + 1][j];
                         state.bs[i + 1][j] = state.bs[i][j];
@@ -40,6 +41,9 @@ fn greedy(state: &mut State, out: &mut Output) {
                     }
                 }
             }
+        }
+        if no_changed {
+            break;
         }
     }
 }
