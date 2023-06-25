@@ -2,7 +2,7 @@ use rand::prelude::*;
 const N: usize = 30;
 // const N2: usize = N * (N + 1) / 2;
 const MAX_TURN: usize = 10000;
-const TIMELIMIT: f64 = 1.9;
+const TIMELIMIT: f64 = 1.95;
 
 const DIR: [(usize, usize); 3] = [(1, 1), (0, !0), (!0, 0)];
 fn main() {
