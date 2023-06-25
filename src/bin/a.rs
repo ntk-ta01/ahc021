@@ -3,15 +3,32 @@ const N: usize = 30;
 // const N2: usize = N * (N + 1) / 2;
 const MAX_TURN: usize = 10000;
 const TIMELIMIT: f64 = 1.9;
+
+const DIR: [(usize, usize); 3] = [(1, 1), (0, !0), (!0, 0)];
 fn main() {
     let mut timer = Timer::new();
     let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
     let input = parse_input();
     let mut out = vec![];
     let mut poses: Vec<_> = vec![];
-    for i in 0..N - 1 {
-        for j in 0..=i {
+    {
+        let mut n = N - 1;
+        let mut i = 0;
+        let mut j = 0;
+        let mut count = 0;
+        let mut dir_i = 0;
+        while n > 0 {
             poses.push((i, j));
+            count += 1;
+            if count == n {
+                count = 0;
+                dir_i += 1;
+                dir_i %= 3;
+                n -= 1;
+            }
+            let (di, dj) = DIR[dir_i];
+            i += di;
+            j += dj;
         }
     }
     let mut state = State::new(input.bs.clone());
