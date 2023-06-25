@@ -10,30 +10,8 @@ fn main() {
     let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
     let input = parse_input();
     let mut out = vec![];
-    let mut poses: Vec<_> = vec![];
-    {
-        let mut n = N - 1;
-        let mut i = 0;
-        let mut j = 0;
-        let mut count = 0;
-        let mut dir_i = 0;
-        while n > 0 {
-            poses.push((i, j));
-            count += 1;
-            if count == n {
-                count = 0;
-                dir_i += 1;
-                dir_i %= 3;
-                n -= 1;
-            }
-            let (di, dj) = DIR[dir_i];
-            i += di;
-            j += dj;
-        }
-    }
     let mut state = State::new(input.bs.clone());
-    greedy(&mut state, &mut out, &poses);
-    annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
+    greedy(&mut state, &mut out);
     write_output(&out);
 }
 
@@ -69,7 +47,7 @@ fn annealing(
         let i = rng.gen_range(0, new_poses.len());
         let j = rng.gen_range(0, new_poses.len());
         new_poses.swap(i, j);
-        greedy(&mut new_state, &mut new_out, &new_poses);
+        greedy(&mut new_state, &mut new_out);
 
         let new_score = compute_score(input, &new_out);
         prob = f64::exp((new_score - now_score) as f64 / temp);
@@ -99,27 +77,45 @@ impl State {
     }
 }
 
-fn greedy(state: &mut State, out: &mut Output, poses: &[(usize, usize)]) {
-    while out.len() < MAX_TURN {
-        let mut no_changed = true;
-        for &(i, j) in poses.iter() {
-            if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
-                no_changed = false;
-                if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
-                    let tmp = state.bs[i + 1][j];
-                    state.bs[i + 1][j] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j)));
-                } else {
-                    let tmp = state.bs[i + 1][j + 1];
-                    state.bs[i + 1][j + 1] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j + 1)));
+fn greedy(state: &mut State, out: &mut Output) {
+    let mut v = vec![];
+    for i in 0..N {
+        for j in 0..=i {
+            v.push(state.bs[i][j]);
+        }
+    }
+    v.sort();
+    let search = |num: i32, state: &State| -> (usize, usize) {
+        for i in 0..N {
+            for j in 0..=i {
+                if state.bs[i][j] == num {
+                    return (i, j);
                 }
             }
         }
-        if no_changed {
-            break;
+        unreachable!();
+    };
+    for num in v {
+        let (mut i, mut j) = search(num, state);
+
+        while i != 0
+            && (j != 0 && state.bs[i - 1][j - 1] > state.bs[i][j]
+                || j != i && state.bs[i - 1][j] > state.bs[i][j])
+        {
+            if j == 0 || j != i && state.bs[i - 1][j - 1] < state.bs[i - 1][j] {
+                let tmp = state.bs[i - 1][j];
+                state.bs[i - 1][j] = state.bs[i][j];
+                state.bs[i][j] = tmp;
+                out.push(((i, j), (i - 1, j)));
+                i -= 1;
+            } else {
+                let tmp = state.bs[i - 1][j - 1];
+                state.bs[i - 1][j - 1] = state.bs[i][j];
+                state.bs[i][j] = tmp;
+                out.push(((i, j), (i - 1, j - 1)));
+                i -= 1;
+                j -= 1;
+            }
         }
     }
 }
