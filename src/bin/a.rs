@@ -1,13 +1,57 @@
+use rand::prelude::*;
 const N: usize = 30;
-const N2: usize = N * (N + 1) / 2;
+// const N2: usize = N * (N + 1) / 2;
 const MAX_TURN: usize = 10000;
-
+const TIMELIMIT: f64 = 1.9;
 fn main() {
+    let mut timer = Timer::new();
+    let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(47389);
     let input = parse_input();
-    let mut state = State::new(input.bs);
+    let mut state = State::new(input.bs.clone());
     let mut out = vec![];
-    greedy(&mut state, &mut out);
+    let mut poses: Vec<_> = vec![];
+    for i in 0..N - 1 {
+        for j in 0..=i {
+            poses.push((i, j));
+        }
+    }
+    greedy(&mut state, &mut out, &poses);
+    climbing(&input, &mut out, &mut poses, &mut timer, &mut rng);
     write_output(&out);
+}
+
+fn climbing(
+    input: &Input,
+    output: &mut Output,
+    poses: &mut Vec<(usize, usize)>,
+    timer: &mut Timer,
+    rng: &mut rand_pcg::Pcg64Mcg,
+) {
+    let mut now_score = compute_score(input, output);
+
+    loop {
+        let passed = timer.get_time() / TIMELIMIT;
+        if passed >= 1.0 {
+            break;
+        }
+
+        let mut new_out = vec![];
+        let mut new_state = State::new(input.bs.clone());
+        let mut new_poses = poses.clone();
+        // 近傍解生成。
+        // posesの近傍を見てgreedyする
+        let i = rng.gen_range(0, new_poses.len());
+        let j = rng.gen_range(0, new_poses.len());
+        new_poses.swap(i, j);
+        greedy(&mut new_state, &mut new_out, &new_poses);
+
+        let new_score = compute_score(input, &new_out);
+        if now_score <= new_score {
+            now_score = new_score;
+            *poses = new_poses;
+            *output = new_out;
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -21,24 +65,22 @@ impl State {
     }
 }
 
-fn greedy(state: &mut State, out: &mut Output) {
+fn greedy(state: &mut State, out: &mut Output, poses: &[(usize, usize)]) {
     while out.len() < MAX_TURN {
         let mut no_changed = true;
-        for i in 0..N - 1 {
-            for j in 0..=i {
-                if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
-                    no_changed = false;
-                    if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
-                        let tmp = state.bs[i + 1][j];
-                        state.bs[i + 1][j] = state.bs[i][j];
-                        state.bs[i][j] = tmp;
-                        out.push(((i, j), (i + 1, j)));
-                    } else {
-                        let tmp = state.bs[i + 1][j + 1];
-                        state.bs[i + 1][j + 1] = state.bs[i][j];
-                        state.bs[i][j] = tmp;
-                        out.push(((i, j), (i + 1, j + 1)));
-                    }
+        for &(i, j) in poses.iter() {
+            if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
+                no_changed = false;
+                if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
+                    let tmp = state.bs[i + 1][j];
+                    state.bs[i + 1][j] = state.bs[i][j];
+                    state.bs[i][j] = tmp;
+                    out.push(((i, j), (i + 1, j)));
+                } else {
+                    let tmp = state.bs[i + 1][j + 1];
+                    state.bs[i + 1][j + 1] = state.bs[i][j];
+                    state.bs[i][j] = tmp;
+                    out.push(((i, j), (i + 1, j + 1)));
                 }
             }
         }
@@ -74,20 +116,9 @@ fn parse_input() -> Input {
     Input { bs }
 }
 
-fn compute_score(input: &Input, out: &Output) -> (i64, Vec<Vec<i32>>) {
-    let mut used = vec![vec![]; N];
-    #[allow(clippy::needless_range_loop)]
-    for i in 0..N {
-        used[i] = vec![false; i + 1];
-    }
+fn compute_score(input: &Input, out: &Output) -> i64 {
     let mut bs = input.bs.clone();
-    for (t, &(p, q)) in out.iter().enumerate() {
-        if !is_adj(p, q) {
-            panic!(
-                "({}, {}) and ({}, {}) are not adjacent (turn {})",
-                p.0, p.1, q.0, q.1, t
-            );
-        }
+    for (_t, &(p, q)) in out.iter().enumerate() {
         let bp = bs[p.0][p.1];
         let bq = bs[q.0][q.1];
         bs[p.0][p.1] = bq;
@@ -109,19 +140,7 @@ fn compute_score(input: &Input, out: &Output) -> (i64, Vec<Vec<i32>>) {
     } else {
         50000 - num * 50
     };
-    (score, bs)
-}
-
-fn is_adj((x1, y1): (usize, usize), (x2, y2): (usize, usize)) -> bool {
-    if x1 == x2 {
-        y1 == y2 + 1 || y1 + 1 == y2
-    } else if x1 + 1 == x2 {
-        y1 == y2 || y1 + 1 == y2
-    } else if x1 == x2 + 1 {
-        y1 == y2 || y1 == y2 + 1
-    } else {
-        false
-    }
+    score
 }
 
 fn get_time() -> f64 {
