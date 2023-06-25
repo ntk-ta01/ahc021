@@ -2,7 +2,7 @@ use rand::prelude::*;
 const N: usize = 30;
 // const N2: usize = N * (N + 1) / 2;
 const MAX_TURN: usize = 10000;
-const TIMELIMIT: f64 = 10.9;
+const TIMELIMIT: f64 = 1.9;
 fn main() {
     let mut timer = Timer::new();
     let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
@@ -15,31 +15,9 @@ fn main() {
         }
     }
     let mut state = State::new(input.bs.clone());
-    greedy2(&mut state, &mut out, &poses);
-    // annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
+    greedy(&mut state, &mut out, &poses);
+    annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
     write_output(&out);
-}
-
-fn compute_distance(input: &Input, state: &State) -> Vec<(usize, (usize, usize))> {
-    let mut dist = vec![];
-    for i in 0..N - 1 {
-        for j in 0..=i {
-            let num = input.bs[i][j];
-            'lp: for i2 in 0..N - 1 {
-                for j2 in 0..=i2 {
-                    if state.bs[i2][j2] == num {
-                        let d = if i < i2 { i2 - i } else { i - i2 }
-                            + if j < j2 { j2 - j } else { j - j2 };
-                        dist.push((d, (i, j))); // 距離, 初期位置
-                        break 'lp;
-                    }
-                }
-            }
-        }
-    }
-    dist.sort();
-    dist.reverse();
-    dist
 }
 
 fn annealing(
@@ -129,42 +107,6 @@ fn greedy(state: &mut State, out: &mut Output, poses: &[(usize, usize)]) {
     }
 }
 
-fn greedy2(state: &mut State, out: &mut Output, poses: &[(usize, usize)]) {
-    // 先に各段をソートしておく
-    for i in 0..N {
-        for j in 0..i {
-            for k in (j..i).rev() {
-                if state.bs[i][k] > state.bs[i][k + 1] {
-                    state.bs[i].swap(k, k + 1);
-                    out.push(((i, k), (i, k + 1)))
-                }
-            }
-        }
-    }
-    while out.len() < MAX_TURN {
-        let mut no_changed = true;
-        for &(i, j) in poses.iter() {
-            if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
-                no_changed = false;
-                if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
-                    let tmp = state.bs[i + 1][j];
-                    state.bs[i + 1][j] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j)));
-                } else {
-                    let tmp = state.bs[i + 1][j + 1];
-                    state.bs[i + 1][j + 1] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j + 1)));
-                }
-            }
-        }
-        if no_changed {
-            break;
-        }
-    }
-}
-
 type Output = Vec<((usize, usize), (usize, usize))>;
 
 fn write_output(output: &Output) {
@@ -210,12 +152,11 @@ fn compute_score(input: &Input, out: &Output) -> i64 {
             }
         }
     }
-    let score = if num == 0 {
+    if num == 0 {
         ((10000 - out.len()) * 5 + 50000) as i64
     } else {
         50000 - num * 50
-    };
-    score
+    }
 }
 
 fn get_time() -> f64 {
