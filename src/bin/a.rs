@@ -17,100 +17,39 @@ fn main() {
         }
         let mut state = State::new(input.bs.clone());
         greedy(&mut state, &mut out, &poses);
-        eprintln!("{}", compute_score(&input, &out));
         // state は完成盤面になっている
         // 完成盤面と初期盤面の位置を計算する
         let dist = compute_distance(&input, &state);
         // 完成盤面で遠いやつから移動させるようにする
-        let mut out2 = vec![];
-        let mut state2 = State::new(input.bs.clone());
-        greedy2(&mut state2, &mut out2, &dist, &poses);
-        eprintln!("{}", compute_score(&input, &out2));
-        write_output(&out2);
-    }
-    // annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
-    // write_output(&out);
-}
-
-fn greedy2(
-    state: &mut State,
-    out: &mut Output,
-    dist: &[(usize, i32, (usize, usize))],
-    poses: &[(usize, usize)],
-) {
-    'lp: for &(_, num, goal) in dist {
-        // num の位置を検索
+        poses = dist.into_iter().map(|(_, pos)| pos).collect();
+        // なんかバグってて含まれてないやつがあるから追加する
         for i in 0..N - 1 {
             for j in 0..=i {
-                if state.bs[i][j] == num {
-                    let mut ni = i;
-                    let mut nj = j;
-                    while (ni, nj) != goal {
-                        #[allow(clippy::comparison_chain)]
-                        if ni < goal.0 {
-                            // ゴールは下にあるので落としていく
-                            if state.bs[ni + 1][nj] < state.bs[ni + 1][nj + 1] {
-                                let tmp = state.bs[ni + 1][nj];
-                                state.bs[ni + 1][nj] = state.bs[ni][nj];
-                                state.bs[ni][nj] = tmp;
-                                out.push(((ni, nj), (ni + 1, nj)));
-                                (ni, nj) = (ni + 1, nj);
-                            } else {
-                                let tmp = state.bs[ni + 1][nj + 1];
-                                state.bs[ni + 1][nj + 1] = state.bs[ni][nj];
-                                state.bs[ni][nj] = tmp;
-                                out.push(((ni, nj), (ni + 1, nj + 1)));
-                                (ni, nj) = (ni + 1, nj + 1);
-                            }
-                        } else if ni > goal.0 {
-                            // ゴールは上にあるので上げていく
-                            if nj == 0
-                                || ni != nj && state.bs[ni - 1][nj - 1] < state.bs[ni - 1][nj]
-                            {
-                                let tmp = state.bs[ni - 1][nj];
-                                state.bs[ni - 1][nj] = state.bs[ni][nj];
-                                state.bs[ni][nj] = tmp;
-                                out.push(((ni, nj), (ni - 1, nj)));
-                                (ni, nj) = (ni - 1, nj);
-                            } else {
-                                let tmp = state.bs[ni - 1][nj - 1];
-                                state.bs[ni - 1][nj - 1] = state.bs[ni][nj];
-                                state.bs[ni][nj] = tmp;
-                                out.push(((ni, nj), (ni - 1, nj - 1)));
-                                (ni, nj) = (ni - 1, nj - 1);
-                            }
-                        } else {
-                            // ゴールは同じ段にある
-                            if nj < goal.1 {
-                                state.bs[ni].swap(nj, nj + 1);
-                                out.push(((ni, nj), (ni, nj + 1)));
-                                (ni, nj) = (ni, nj + 1);
-                            } else if nj > goal.1 {
-                                state.bs[ni].swap(nj, nj - 1);
-                                out.push(((ni, nj), (ni, nj - 1)));
-                                (ni, nj) = (ni, nj - 1);
-                            }
-                        }
-                    }
-                    continue 'lp;
+                if !poses.contains(&(i, j)) {
+                    poses.push((i, j));
                 }
             }
         }
+        let mut state2 = State::new(input.bs.clone());
+        let mut out2 = vec![];
+        greedy(&mut state2, &mut out2, &poses);
     }
-    greedy(state, out, poses);
+    annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
+    write_output(&out);
 }
 
-fn compute_distance(input: &Input, state: &State) -> Vec<(usize, i32, (usize, usize))> {
+fn compute_distance(input: &Input, state: &State) -> Vec<(usize, (usize, usize))> {
     let mut dist = vec![];
     for i in 0..N - 1 {
         for j in 0..=i {
             let num = input.bs[i][j];
-            for i2 in 0..N - 1 {
+            'lp: for i2 in 0..N - 1 {
                 for j2 in 0..=i2 {
                     if state.bs[i2][j2] == num {
                         let d = if i < i2 { i2 - i } else { i - i2 }
                             + if j < j2 { j2 - j } else { j - j2 };
-                        dist.push((d, num, (i2, j2))); // 距離, 数字, 目的地
+                        dist.push((d, (i, j))); // 距離, 初期位置
+                        break 'lp;
                     }
                 }
             }
