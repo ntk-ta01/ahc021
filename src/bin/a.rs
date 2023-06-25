@@ -16,24 +16,33 @@ fn main() {
         }
     }
     greedy(&mut state, &mut out, &poses);
-    climbing(&input, &mut out, &mut poses, &mut timer, &mut rng);
+    annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
     write_output(&out);
 }
 
-fn climbing(
+fn annealing(
     input: &Input,
     output: &mut Output,
     poses: &mut Vec<(usize, usize)>,
     timer: &mut Timer,
     rng: &mut rand_pcg::Pcg64Mcg,
 ) {
+    const T0: f64 = 10000.0;
+    const T1: f64 = 0.01;
+    let mut temp;
+    let mut prob;
+
     let mut now_score = compute_score(input, output);
+
+    let mut best_score = now_score;
+    let mut best_output = output.clone();
 
     loop {
         let passed = timer.get_time() / TIMELIMIT;
         if passed >= 1.0 {
             break;
         }
+        temp = T0.powf(1.0 - passed) * T1.powf(passed);
 
         let mut new_out = vec![];
         let mut new_state = State::new(input.bs.clone());
@@ -46,12 +55,20 @@ fn climbing(
         greedy(&mut new_state, &mut new_out, &new_poses);
 
         let new_score = compute_score(input, &new_out);
-        if now_score <= new_score {
+        prob = f64::exp((new_score - now_score) as f64 / temp);
+        if now_score <= new_score || rng.gen_bool(prob) {
             now_score = new_score;
             *poses = new_poses;
             *output = new_out;
         }
+
+        if best_score < now_score {
+            best_score = now_score;
+            best_output = output.clone();
+        }
     }
+    *output = best_output;
+    // eprintln!("{}", best_score);
 }
 
 #[derive(Debug, Clone)]
