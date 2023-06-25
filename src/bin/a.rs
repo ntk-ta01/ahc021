@@ -2,38 +2,20 @@ use rand::prelude::*;
 const N: usize = 30;
 // const N2: usize = N * (N + 1) / 2;
 const MAX_TURN: usize = 10000;
-const TIMELIMIT: f64 = 1.9;
+const TIMELIMIT: f64 = 10.9;
 fn main() {
     let mut timer = Timer::new();
     let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
     let input = parse_input();
     let mut out = vec![];
     let mut poses: Vec<_> = vec![];
-    {
-        for i in 0..N - 1 {
-            for j in 0..=i {
-                poses.push((i, j));
-            }
+    for i in 0..N - 1 {
+        for j in 0..=i {
+            poses.push((i, j));
         }
-        let mut state = State::new(input.bs.clone());
-        greedy(&mut state, &mut out, &poses);
-        // state は完成盤面になっている
-        // 完成盤面と初期盤面の位置を計算する
-        let dist = compute_distance(&input, &state);
-        // 完成盤面で遠いやつから移動させるようにする
-        poses = dist.into_iter().map(|(_, pos)| pos).collect();
-        // なんかバグってて含まれてないやつがあるから追加する
-        for i in 0..N - 1 {
-            for j in 0..=i {
-                if !poses.contains(&(i, j)) {
-                    poses.push((i, j));
-                }
-            }
-        }
-        let mut state2 = State::new(input.bs.clone());
-        let mut out2 = vec![];
-        greedy(&mut state2, &mut out2, &poses);
     }
+    let mut state = State::new(input.bs.clone());
+    greedy(&mut state, &mut out, &poses);
     annealing(&input, &mut out, &mut poses, &mut timer, &mut rng);
     write_output(&out);
 }
