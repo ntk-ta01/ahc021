@@ -22,23 +22,23 @@ impl State {
 }
 
 fn greedy(state: &mut State, out: &mut Output) {
-    for i in 0..N - 1 {
-        for j in 0..=i {
-            if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
-                if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
-                    let tmp = state.bs[i + 1][j];
-                    state.bs[i + 1][j] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j)));
-                } else {
-                    let tmp = state.bs[i + 1][j + 1];
-                    state.bs[i + 1][j + 1] = state.bs[i][j];
-                    state.bs[i][j] = tmp;
-                    out.push(((i, j), (i + 1, j + 1)));
+    let timer = Timer::new();
+    while out.len() < MAX_TURN && timer.get_time() < 1.9 {
+        for i in 0..N - 1 {
+            for j in 0..=i {
+                if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
+                    if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
+                        let tmp = state.bs[i + 1][j];
+                        state.bs[i + 1][j] = state.bs[i][j];
+                        state.bs[i][j] = tmp;
+                        out.push(((i, j), (i + 1, j)));
+                    } else {
+                        let tmp = state.bs[i + 1][j + 1];
+                        state.bs[i + 1][j + 1] = state.bs[i][j];
+                        state.bs[i][j] = tmp;
+                        out.push(((i, j), (i + 1, j + 1)));
+                    }
                 }
-            }
-            if out.len() == MAX_TURN {
-                return;
             }
         }
     }
@@ -117,5 +117,33 @@ fn is_adj((x1, y1): (usize, usize), (x2, y2): (usize, usize)) -> bool {
         y1 == y2 || y1 == y2 + 1
     } else {
         false
+    }
+}
+
+fn get_time() -> f64 {
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap();
+    t.as_secs() as f64 + t.subsec_nanos() as f64 * 1e-9
+}
+
+struct Timer {
+    start_time: f64,
+}
+
+impl Timer {
+    fn new() -> Timer {
+        Timer {
+            start_time: get_time(),
+        }
+    }
+
+    fn get_time(&self) -> f64 {
+        get_time() - self.start_time
+    }
+
+    #[allow(dead_code)]
+    fn reset(&mut self) {
+        self.start_time = 0.0;
     }
 }
