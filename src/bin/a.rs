@@ -1,10 +1,47 @@
 const N: usize = 30;
 const N2: usize = N * (N + 1) / 2;
+const MAX_TURN: usize = 10000;
 
 fn main() {
     let input = parse_input();
+    let mut state = State::new(input.bs);
     let mut out = vec![];
+    greedy(&mut state, &mut out);
     write_output(&out);
+}
+
+#[derive(Debug, Clone)]
+struct State {
+    bs: Vec<Vec<i32>>,
+}
+
+impl State {
+    fn new(bs: Vec<Vec<i32>>) -> Self {
+        State { bs }
+    }
+}
+
+fn greedy(state: &mut State, out: &mut Output) {
+    for i in 0..N - 1 {
+        for j in 0..=i {
+            if state.bs[i + 1][j] < state.bs[i][j] || state.bs[i + 1][j + 1] < state.bs[i][j] {
+                if state.bs[i + 1][j] < state.bs[i + 1][j + 1] {
+                    let tmp = state.bs[i + 1][j];
+                    state.bs[i + 1][j] = state.bs[i][j];
+                    state.bs[i][j] = tmp;
+                    out.push(((i, j), (i + 1, j)));
+                } else {
+                    let tmp = state.bs[i + 1][j + 1];
+                    state.bs[i + 1][j + 1] = state.bs[i][j];
+                    state.bs[i][j] = tmp;
+                    out.push(((i, j), (i + 1, j + 1)));
+                }
+            }
+            if out.len() == MAX_TURN {
+                return;
+            }
+        }
+    }
 }
 
 type Output = Vec<((usize, usize), (usize, usize))>;

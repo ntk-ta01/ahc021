@@ -4,7 +4,10 @@ use tools::*;
 
 fn main() {
     if std::env::args().len() != 3 {
-        eprintln!("Usage: {} <input> <output>", std::env::args().nth(0).unwrap());
+        eprintln!(
+            "Usage: {} <input> <output>",
+            std::env::args().nth(0).unwrap()
+        );
         return;
     }
     let in_file = std::env::args().nth(1).unwrap();
@@ -27,6 +30,6 @@ fn main() {
     if err.len() > 0 {
         println!("{}", err);
     }
-    let vis = format!("<html><body>{}</body></html>", svg);
-    std::fs::write("vis.html", &vis).unwrap();
+    // let vis = format!("<html><body>{}</body></html>", svg);
+    // std::fs::write("vis.html", &vis).unwrap();
 }
